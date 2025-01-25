@@ -20,6 +20,7 @@ Speak naturally donn't use special symbols."""
 # Title
 st.title("Solution Advisor")
 
+
 # Create two columns
 col1, col2 = st.columns(2)
 
@@ -27,8 +28,18 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("Behavior Prompt")
     behavior_prompt = st.text_area("Enter your prompt here:", value="")
+    override= st.checkbox("Override Default Behaviour",value=False)
     emails=st.text_input(label="Enter a list of emails (comma-separated)")
+    voice_avatar=st.selectbox(label="Voice Avatar",options=["en-NG-AbeoNeural",
+                                                            "en-NG-EzinneNeural",
+                                                            "en-IN-AashiNeural",
+                                                            "en-IN-AaravNeural",
+                                                            "en-GB-RyanNeural",
+                                                            "en-GB-SoniaNeural",
+                                                            "en-US-AvaMultilingualNeural",
+                                                            "en-US-AndrewMultilingualNeural"])
     emails_list = [email.strip() for email in emails.split(",")]
+    
 
 
 # Column 2: Roadmap
@@ -36,7 +47,7 @@ with col2:
     st.subheader("Roadmap")
     roadmap = st.text_area("Enter your roadmap here:")
     uploaded_file = st.file_uploader("Upload Roadmap File (PDF)", type="pdf")
-    expire_minutes=st.number_input("Enter the duration of the meeting")
+    expire_minutes=st.number_input("Enter the duration of the meeting",value=10)
 
     # Convert uploaded PDF to text
     if uploaded_file:
@@ -57,11 +68,18 @@ if st.button("Submit"):
         
         # Prepare data for API
         payload = {
-            "behavior_prompt": final_behavior_prompt,
-            "roadmap": roadmap,
-            "emails":emails_list,
-            "expire_mintues": expire_minutes
-        }
+                    "speed": "normal",
+                    "emotion": [
+                        "positivity:high",
+                        "curiosity"
+                    ],
+                    "roadmap": roadmap,
+                    "prompt": final_behavior_prompt,
+                    "voice_id": voice_avatar,
+                    "session_time": 10,
+                    "emails": emails_list,
+                    "override": override
+                    } 
 
         # Connect to the endpoint
         try:
@@ -73,6 +91,7 @@ if st.button("Submit"):
 
             # Parse API response
             data = response.json()
+            print(data)
             room_url = data.get("room_url")
             link_sent=send_link(room_url, emails_list)
             print(link_sent)
@@ -82,7 +101,9 @@ if st.button("Submit"):
                 st.write("Or access the meet directly using the link below.")
                 st.code(room_url, language="python")
             else:
-                st.error("Room URL not found in the API response.")
+                st.error("Couldn't send the meet link over mail")
+                st.write("Access the meet directly using the link below.")
+                st.code(room_url, language="python")
 
         except requests.exceptions.RequestException as e:
             st.error(f"Error connecting to the server: {e}")
